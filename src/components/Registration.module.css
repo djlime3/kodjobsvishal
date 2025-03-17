@@ -1,0 +1,159 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.registrationContainer {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  animation: fadeIn 1s ease-in-out;
+}
+
+.leftSection {
+  flex: 1;
+  background-image: url('../../images/loginpage.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 1.5s ease-in-out;
+}
+
+.rightSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #1a1a1a;
+  color: white;
+  animation: fadeIn 1.5s ease-in-out;
+}
+
+.content {
+  width: 80%;
+  max-width: 500px;
+  padding: 2rem;
+  text-align: center;
+  animation: fadeIn 2s ease-in-out;
+}
+
+.content h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  opacity: 0;
+  animation: fadeIn 1s ease-in-out forwards;
+  animation-delay: 0.5s;
+}
+
+.content p {
+  font-size: 1.1rem;
+  color: #cccccc;
+  margin-bottom: 2rem;
+  opacity: 0;
+  animation: fadeIn 1s ease-in-out forwards;
+  animation-delay: 0.7s;
+}
+
+.kod {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  color: white;
+}
+
+.jobs {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  color: #FFD700;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.input {
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  opacity: 0;
+  animation: fadeIn 0.5s ease-in-out forwards;
+}
+
+.input:nth-child(1) { animation-delay: 0.9s; }
+.input:nth-child(2) { animation-delay: 1.1s; }
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.error {
+  color: #ff4444;
+  font-size: 0.9rem;
+  margin-top: -0.5rem;
+  text-align: left;
+  opacity: 0;
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+.loginButton {
+  padding: 1rem;
+  border-radius: 8px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 0.5rem;
+  opacity: 0;
+  animation: fadeIn 0.5s ease-in-out forwards;
+  animation-delay: 1.3s;
+}
+
+.loginButton:hover {
+  background-color: #0056b3;
+}
+
+.signupText {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  opacity: 0;
+  animation: fadeIn 0.5s ease-in-out forwards;
+  animation-delay: 1.5s;
+}
+
+.signupLink {
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.signupLink:hover {
+  color: #0056b3;
+} 

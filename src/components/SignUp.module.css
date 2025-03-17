@@ -1,0 +1,334 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomInOut {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.signupContainer {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  background-color: #1a1a1a;
+  position: relative;
+  overflow: hidden;
+}
+
+.leftSection {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.leftSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('../../images/signup.jpg');
+  background-size: cover;
+  background-position: center;
+  animation: zoomInOut 20s ease-in-out infinite;
+  z-index: 1;
+}
+
+.leftSection::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.2) 0%,
+    rgba(0, 0, 0, 0.3) 50%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  background-size: 200% 200%;
+  animation: gradientMove 15s ease infinite;
+  z-index: 2;
+}
+
+.rightSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #1a1a1a;
+  color: white;
+  position: relative;
+  z-index: 3;
+}
+
+.content {
+  width: 80%;
+  max-width: 500px;
+  padding: 2rem;
+  text-align: center;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.content h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  opacity: 0;
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.content p {
+  font-size: 1.1rem;
+  color: #cccccc;
+  margin-bottom: 2rem;
+  opacity: 0;
+  animation: fadeIn 0.8s ease-out forwards;
+  animation-delay: 0.2s;
+}
+
+.kod {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  color: white;
+}
+
+.jobs {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  color: #FFD700;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  opacity: 0;
+  animation: fadeIn 0.8s ease-out forwards;
+  animation-delay: 0.4s;
+}
+
+.input {
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.input:focus {
+  outline: none;
+  border-color: #FFD700;
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+}
+
+.dateField {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  position: relative;
+}
+
+.dateLabel {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  text-align: left;
+  margin-left: 0.25rem;
+}
+
+.dateInput {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-sizing: border-box;
+}
+
+.dateInput:focus {
+  outline: none;
+  border-color: #FFD700;
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+}
+
+/* Styling the calendar icon and dropdown */
+.dateInput::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.5;
+  cursor: pointer;
+  background-color: transparent;
+  padding: 5px;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+  position: absolute;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+}
+
+.dateInput::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.8;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dateInput::-webkit-datetime-edit {
+  color: white;
+  padding: 0 0.5rem;
+}
+
+.dateInput::-webkit-datetime-edit-fields-wrapper {
+  color: white;
+}
+
+.dateInput::-webkit-datetime-edit-text {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dateInput::-webkit-datetime-edit-month-field,
+.dateInput::-webkit-datetime-edit-day-field,
+.dateInput::-webkit-datetime-edit-year-field {
+  color: white;
+}
+
+.dateInput::-webkit-inner-spin-button {
+  display: none;
+}
+
+/* For Firefox */
+.dateInput::-moz-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.5;
+}
+
+/* For Edge */
+.dateInput::-ms-clear {
+  display: none;
+}
+
+/* Placeholder styling */
+.dateInput::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.signupButton {
+  padding: 1rem;
+  border-radius: 8px;
+  border: none;
+  background: #FFD700;
+  color: #1a1a1a;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 0.5rem;
+}
+
+.signupButton:hover {
+  background: #FFE44D;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 215, 0, 0.2);
+}
+
+.loginText {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin-top: 1rem;
+}
+
+.loginLink {
+  color: #FFD700;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.loginLink:hover {
+  color: #FFE44D;
+}
+
+.error {
+  color: #ff4444;
+  background-color: rgba(255, 68, 68, 0.1);
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .signupContainer {
+    flex-direction: column;
+  }
+
+  .leftSection {
+    height: 30vh;
+  }
+
+  .rightSection {
+    padding: 2rem 1rem;
+  }
+
+  .content {
+    width: 90%;
+    padding: 1rem;
+  }
+
+  .content h1 {
+    font-size: 2rem;
+  }
+
+  .content p {
+    font-size: 1rem;
+  }
+} 

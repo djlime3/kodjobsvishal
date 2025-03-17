@@ -1,0 +1,163 @@
+@keyframes fadeZoomIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes titleZoom {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes floatEffect {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.welcomeContainer {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-image: url('../../images/main page.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcomeContainer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);
+  animation: fadeZoomIn 1.5s ease-out;
+}
+
+.content {
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 2.5rem;
+  border-radius: 15px;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 1rem;
+  position: relative;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: fadeZoomIn 1s ease-out;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.content h1 {
+  margin-bottom: 1.5rem;
+  font-size: 2.5rem;
+  line-height: 1.2;
+  animation: titleZoom 1.2s ease-out;
+}
+
+.content p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  opacity: 0;
+  animation: fadeZoomIn 0.8s ease-out forwards;
+  animation-delay: 0.5s;
+}
+
+.kod {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  display: inline-block;
+  animation: floatEffect 3s ease-in-out infinite;
+}
+
+.jobs {
+  color: #FFD700;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  display: inline-block;
+  animation: floatEffect 3s ease-in-out infinite;
+  animation-delay: 0.2s;
+}
+
+.nextButton {
+  background-color: #FFD700;
+  color: black;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 2rem;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  animation: fadeZoomIn 0.8s ease-out forwards;
+  animation-delay: 1s;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.nextButton:hover {
+  background-color: #FFC800;
+  transform: translateX(5px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+}
+
+.arrow {
+  font-size: 1.2rem;
+  transition: transform 0.3s ease;
+}
+
+.nextButton:hover .arrow {
+  transform: translateX(5px);
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 2rem;
+    margin: 1rem;
+  }
+
+  .content h1 {
+    font-size: 2rem;
+  }
+
+  .content p {
+    font-size: 1rem;
+  }
+
+  .nextButton {
+    padding: 10px 24px;
+    font-size: 1rem;
+  }
+} 

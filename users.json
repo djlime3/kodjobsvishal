@@ -1,0 +1,36 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "vishal2003",
+      "password": "2223",
+      "email": "navalevishal99@gmail.com",
+      "dob": "2025-03-01",
+      "age": 0
+    },
+    {
+      "id": 2,
+      "username": "iudf",
+      "password": "3456",
+      "email": "123@gmail.com",
+      "dob": "2025-03-10",
+      "age": 0
+    },
+    {
+      "id": 3,
+      "username": "pramath",
+      "password": "password",
+      "email": "345@gmail.com",
+      "dob": "2025-03-02",
+      "age": 0
+    },
+    {
+      "id": 4,
+      "username": "kalyan",
+      "password": "kalyan",
+      "email": "kalyan@gmail.com",
+      "dob": "2025-03-05",
+      "age": 0
+    }
+  ]
+}
