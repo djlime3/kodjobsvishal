@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './JobDashboard.module.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,6 +16,10 @@ interface Job {
   isBookmarked?: boolean;
   enrolledCount: number; // Number of people enrolled
   appliedAt?: string;
+  jobDescription?: string;
+  employmentType?: string;
+  responsibilities?: string[];
+  benefits?: string[];
 }
 
 interface User {
@@ -26,7 +30,8 @@ interface User {
   // ... other user properties
 }
 
-const RAPID_API_KEY = 'acc7a9a72amshea1d0b980c8e20ap153816jsn76dc370ecd02';
+// Update API key
+const RAPID_API_KEY = '2948140962mshd5b5cd5df92c5cap1a1d41jsne7ab9ba04c6a';
 const RAPID_API_HOST = 'jsearch.p.rapidapi.com';
 
 // Add color palette for company logos
@@ -146,9 +151,27 @@ const LoadingJobCard: React.FC = () => (
   </div>
 );
 
+// Add helper function for formatting time
+const formatTimeAgo = (date: Date): string => {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  const diffInDays = Math.floor(diffInHours / 24);
+
+  if (diffInDays > 0) {
+    return `${diffInDays} day${diffInDays === 1 ? '' : 's'} ago`;
+  } else if (diffInHours > 0) {
+    return `${diffInHours} hour${diffInHours === 1 ? '' : 's'} ago`;
+  } else if (diffInMinutes > 0) {
+    return `${diffInMinutes} minute${diffInMinutes === 1 ? '' : 's'} ago`;
+  } else {
+    return 'Just now';
+  }
+};
+
 const JobDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('all');
   const [user, setUser] = useState<User | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,11 +189,120 @@ const JobDashboard: React.FC = () => {
   const [appliedJobs, setAppliedJobs] = useState<Job[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showRefreshMessage, setShowRefreshMessage] = useState(false);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
+  
   const dropdownRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
-  
+
+  // Add job type interface extensions for API data
+  interface JobApiResponse {
+    employer_name: string;
+    employer_logo: string;
+    job_title: string;
+    job_city: string;
+    job_country: string;
+    job_min_salary: number;
+    job_max_salary: number;
+    job_employment_type: string;
+    job_highlights: {
+      Qualifications?: string[];
+      Responsibilities?: string[];
+      Benefits?: string[];
+    };
+    job_required_skills: string;
+    job_posted_at_datetime_utc: string;
+    job_description: string;
+    job_id: string;
+  }
+
+  // Modify fetchJobs function
+  const fetchJobs = useCallback(async (page: number = 1, query: string = '') => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const options = {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': RAPID_API_KEY,
+          'X-RapidAPI-Host': RAPID_API_HOST
+        }
+      };
+
+      // Encode the search query and use it if provided, otherwise use default
+      const searchQuery = query ? 
+        encodeURIComponent(query) : 
+        'software%20developer%20india';
+
+      const response = await fetch(
+        `https://jsearch.p.rapidapi.com/search?query=${searchQuery}&page=${page}&num_pages=1&country=IN`,
+        options
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch jobs');
+      }
+
+      const data = await response.json();
+      
+      // Transform API response to match our Job interface
+      const transformedJobs: Job[] = data.data.map((job: JobApiResponse) => {
+        // Calculate salary in LPA (Lakhs Per Annum)
+        const minSalaryLPA = job.job_min_salary ? Math.floor(job.job_min_salary / 100000) : 3;
+        const maxSalaryLPA = job.job_max_salary ? Math.floor(job.job_max_salary / 100000) : 15;
+        
+        // Extract skills from job description and required skills
+        const skillsFromDesc = job.job_required_skills
+          ? job.job_required_skills.split(',').map(skill => skill.trim())
+          : [];
+        
+        // Get qualifications from job highlights
+        const qualifications = job.job_highlights?.Qualifications || [];
+        
+        // Combine skills and filter duplicates
+        const skills = Array.from(new Set([...skillsFromDesc, ...qualifications]))
+          .slice(0, 5); // Limit to 5 skills
+
+        return {
+          id: job.job_id || String(Math.random()),
+          title: job.job_title || 'Software Developer',
+          company: job.employer_name || 'Unknown Company',
+          companyLogo: job.employer_logo || getCompanyLogo(job.employer_name || 'Unknown Company'),
+          location: job.job_city ? `${job.job_city}, ${job.job_country}` : job.job_country || 'Remote',
+          lpa: `${minSalaryLPA}-${maxSalaryLPA} LPA`,
+          skills: skills.length > 0 ? skills : ['JavaScript', 'React', 'Node.js'],
+          postedTime: job.job_posted_at_datetime_utc ? 
+            formatTimeAgo(new Date(job.job_posted_at_datetime_utc)) : 
+            '3 days ago',
+          expiresIn: '30 days',
+          isEligible: true,
+          isBookmarked: false,
+          enrolledCount: Math.floor(Math.random() * 80) + 20,
+          jobDescription: job.job_description,
+          employmentType: job.job_employment_type,
+          responsibilities: job.job_highlights?.Responsibilities || [],
+          benefits: job.job_highlights?.Benefits || []
+        };
+      });
+
+      setJobs(prevJobs => page === 1 ? transformedJobs : [...prevJobs, ...transformedJobs]);
+      setHasMore(transformedJobs.length === 10);
+      setCurrentPage(page);
+      setShowLoadingScreen(false);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      setError('Failed to fetch jobs. Please try again later.');
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+    }
+  }, []); // Empty dependency array since we don't use any external values
+
+  useEffect(() => {
+    fetchJobs(1);
+  }, [fetchJobs]);
+
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
@@ -262,107 +394,11 @@ const JobDashboard: React.FC = () => {
     }
   }, []);
 
-  // Update fetchJobs function to include bookmarks
-  const fetchJobs = async (page: number = 1) => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const options = {
-        method: 'GET',
-        headers: {
-          'X-RapidAPI-Key': RAPID_API_KEY,
-          'X-RapidAPI-Host': RAPID_API_HOST
-        }
-      };
-
-      const queries = [
-        'software developer in india',
-        'frontend developer in india',
-        'backend developer in india',
-        'full stack developer in india',
-        'mobile developer in india'
-      ];
-
-      const response = await fetch(`https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(queries[page % queries.length])}&page=${page}&num_pages=1`, options);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch jobs');
-      }
-      
-      const data = await response.json();
-      const bookmarks = JSON.parse(localStorage.getItem('bookmarkedJobs') || '[]');
-      
-      // Generate random salary ranges if not provided
-      const generateSalary = () => {
-        const min = Math.floor(Math.random() * 8) + 3; // 3-10 LPA
-        const max = min + Math.floor(Math.random() * 10) + 3; // min + (3-12) LPA
-        return `${min}-${max} LPA`;
-      };
-      
-      // Transform the API response to match our Job interface
-      const transformedJobs: Job[] = data.data.map((item: any) => {
-        // Always generate a salary to ensure we never have "Salary not specified"
-        const salary = generateSalary();
-        
-        return {
-          id: item.job_id || String(Math.random()),
-          title: item.job_title || 'Unknown Position',
-          company: item.employer_name || 'Unknown Company',
-          companyLogo: item.employer_logo || '/images/default-company-logo.png',
-          location: item.job_city ? `${item.job_city}, ${item.job_country}` : item.job_country || 'Location not specified',
-          lpa: salary, // Always use our generated salary
-          skills: item.job_required_skills ? item.job_required_skills.split(',').map((skill: string) => skill.trim()) : [],
-          postedTime: item.job_posted_at_datetime_utc ? new Date(item.job_posted_at_datetime_utc).toLocaleDateString() : 'Recently',
-          expiresIn: item.job_offer_expiration_datetime_utc ? `Expires ${new Date(item.job_offer_expiration_datetime_utc).toLocaleDateString()}` : 'No expiration date',
-          isEligible: true,
-          isBookmarked: bookmarks.includes(item.job_id),
-          enrolledCount: Math.floor(Math.random() * 80) + 20 // Random between 20-100
-        };
-      });
-
-      // Update closed jobs to ensure they also have proper salary information
-      const updatedClosedJobs = closedJobs.map(job => ({
-        ...job,
-        lpa: job.lpa === 'Salary not specified' ? generateSalary() : job.lpa
-      }));
-      
-      // Update the closed jobs with the new salary information
-      closedJobs.forEach((job, index) => {
-        if (job.lpa === 'Salary not specified') {
-          closedJobs[index].lpa = generateSalary();
-        }
-      });
-
-      setJobs(prevJobs => {
-        const newJobs = page === 1 ? transformedJobs : [...prevJobs, ...transformedJobs];
-        
-        // Ensure no job has "Salary not specified"
-        return newJobs.map(job => ({
-          ...job,
-          lpa: job.lpa === 'Salary not specified' ? generateSalary() : job.lpa
-        }));
-      });
-      
-      setHasMore(transformedJobs.length > 0);
-      setCurrentPage(page);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching jobs');
-      setHasMore(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const loadMore = () => {
     if (!loading && hasMore) {
       fetchJobs(currentPage + 1);
     }
   };
-
-  useEffect(() => {
-    fetchJobs(1);
-  }, []);
 
   const filteredJobs = [...jobs, ...recommendedJobs].filter(job => {
     const searchTermLower = searchTerm.toLowerCase();
@@ -567,134 +603,322 @@ const JobDashboard: React.FC = () => {
     }, 3000);
   };
 
-  // Function to generate recommended jobs
-  const generateRecommendedJobs = () => {
-    // Job titles for recommendations
-    const jobTitles = [
-      'Senior Frontend Developer',
-      'Full Stack Engineer',
-      'React Native Developer',
-      'DevOps Engineer',
-      'Machine Learning Engineer',
-      'UI/UX Designer'
-    ];
-    
-    // Companies for recommendations
-    const companies = [
-      'Google',
-      'Microsoft',
-      'Amazon',
-      'Meta',
-      'Apple',
-      'Netflix'
-    ];
-    
-    // Locations
-    const locations = [
-      'Bangalore, India',
-      'Hyderabad, India',
-      'Mumbai, India',
-      'Delhi, India',
-      'Pune, India',
-      'Chennai, India'
-    ];
-    
-    // Skills sets for different job types
-    const skillSets = {
-      'Frontend': ['React', 'JavaScript', 'TypeScript', 'HTML', 'CSS', 'Redux'],
-      'Full Stack': ['Node.js', 'Express', 'MongoDB', 'React', 'JavaScript', 'AWS'],
-      'Mobile': ['React Native', 'Flutter', 'Swift', 'Kotlin', 'Mobile UI Design'],
-      'DevOps': ['Docker', 'Kubernetes', 'AWS', 'CI/CD', 'Jenkins', 'Terraform'],
-      'ML': ['Python', 'TensorFlow', 'PyTorch', 'Data Analysis', 'Statistics'],
-      'Design': ['Figma', 'Adobe XD', 'UI Design', 'UX Research', 'Prototyping']
-    };
-    
-    // Generate 6 recommended jobs
-    const recommendations = Array.from({ length: 6 }, (_, index) => {
-      const jobTitle = jobTitles[Math.floor(Math.random() * jobTitles.length)];
-      const company = companies[Math.floor(Math.random() * companies.length)];
-      const location = locations[Math.floor(Math.random() * locations.length)];
-      
-      // Determine skill set based on job title
-      let skills: string[] = [];
-      if (jobTitle.includes('Frontend') || jobTitle.includes('React')) {
-        skills = skillSets.Frontend.slice(0, 4);
-      } else if (jobTitle.includes('Full Stack')) {
-        skills = skillSets['Full Stack'].slice(0, 4);
-      } else if (jobTitle.includes('Native') || jobTitle.includes('Mobile')) {
-        skills = skillSets.Mobile.slice(0, 4);
-      } else if (jobTitle.includes('DevOps')) {
-        skills = skillSets.DevOps.slice(0, 4);
-      } else if (jobTitle.includes('Machine Learning')) {
-        skills = skillSets.ML.slice(0, 4);
-      } else if (jobTitle.includes('Designer')) {
-        skills = skillSets.Design.slice(0, 4);
-      } else {
-        // Mix of skills for other job types
-        skills = [...skillSets.Frontend.slice(0, 2), ...skillSets['Full Stack'].slice(0, 2)];
-      }
-      
-      // Generate salary range (3-15 LPA)
-      const minSalary = Math.floor(Math.random() * 8) + 3; // 3-10 LPA
-      const maxSalary = minSalary + Math.floor(Math.random() * 5) + 3; // min + (3-7) LPA
-      
-      // Generate random enrollment count (20-100)
-      const enrolledCount = Math.floor(Math.random() * 80) + 20;
-      
-      // Use actual logo if available, otherwise fallback
-      const companyLogo = getCompanyLogo(company);
-      
-      return {
-        id: `rec-${index}-${Date.now()}`,
-        title: jobTitle,
-        company: company,
-        companyLogo: companyLogo,
-        location: location,
-        lpa: `${minSalary}-${maxSalary} LPA`,
-        skills: skills,
-        postedTime: `${Math.floor(Math.random() * 7) + 1} days ago`,
-        expiresIn: `${Math.floor(Math.random() * 20) + 10} days`,
-        isEligible: true,
-        isBookmarked: false,
-        enrolledCount: enrolledCount
-      };
-    });
-    
-    // Apply any existing bookmarks
-    const bookmarks = JSON.parse(localStorage.getItem('bookmarkedJobs') || '[]');
-    const recommendationsWithBookmarks = recommendations.map(job => ({
-      ...job,
-      isBookmarked: bookmarks.includes(job.id)
-    }));
-    
-    setRecommendedJobs(recommendationsWithBookmarks);
-  };
-
-  // Call generateRecommendedJobs when component mounts or when switching to recommended tab
+  // Update the loadRecommendedJobs function
   useEffect(() => {
-    if (activeTab === 'recommended' && recommendedJobs.length === 0) {
-      generateRecommendedJobs();
-    }
+    const loadRecommendedJobs = async () => {
+      if (activeTab === 'recommended' && recommendedJobs.length === 0) {
+        try {
+          const recommendedQueries = [
+            'frontend developer india',
+            'backend developer india',
+            'full stack developer india',
+            'mobile developer india',
+            'devops engineer india',
+            'software engineer india'
+          ];
+          
+          const options = {
+            method: 'GET',
+            headers: {
+              'X-RapidAPI-Key': RAPID_API_KEY,
+              'X-RapidAPI-Host': RAPID_API_HOST
+            }
+          };
+
+          // Fetch one job for each query
+          const recommendedJobsPromises = recommendedQueries.map(async query => {
+            try {
+              const response = await fetch(
+                `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(query)}&page=1&num_pages=1&country=IN`,
+                options
+              );
+
+              if (!response.ok) {
+                throw new Error('Failed to fetch recommended jobs');
+              }
+
+              const data = await response.json();
+              return data.data[0]; // Get first job from each query
+            } catch (error) {
+              console.error(`Error fetching recommended job for ${query}:`, error);
+              return null;
+            }
+          });
+
+          const recommendedJobsData = await Promise.all(recommendedJobsPromises);
+          
+          // Transform and filter out null results
+          const transformedRecommendedJobs: Job[] = recommendedJobsData
+            .filter(job => job !== null)
+            .map((job: JobApiResponse) => {
+              // Calculate salary in LPA (Lakhs Per Annum)
+              const minSalaryLPA = job.job_min_salary ? Math.floor(job.job_min_salary / 100000) : 3;
+              const maxSalaryLPA = job.job_max_salary ? Math.floor(job.job_max_salary / 100000) : 15;
+              
+              // Extract skills from job description and required skills
+              const skillsFromDesc = job.job_required_skills
+                ? job.job_required_skills.split(',').map(skill => skill.trim())
+                : [];
+              
+              // Get qualifications from job highlights
+              const qualifications = job.job_highlights?.Qualifications || [];
+              
+              // Combine skills and filter duplicates
+              const skills = Array.from(new Set([...skillsFromDesc, ...qualifications]))
+                .slice(0, 5); // Limit to 5 skills
+
+              return {
+                id: job.job_id || String(Math.random()),
+                title: job.job_title || 'Software Developer',
+                company: job.employer_name || 'Unknown Company',
+                companyLogo: job.employer_logo || getCompanyLogo(job.employer_name || 'Unknown Company'),
+                location: job.job_city ? `${job.job_city}, ${job.job_country}` : job.job_country || 'Remote',
+                lpa: `${minSalaryLPA}-${maxSalaryLPA} LPA`,
+                skills: skills.length > 0 ? skills : ['JavaScript', 'React', 'Node.js'],
+                postedTime: job.job_posted_at_datetime_utc ? 
+                  formatTimeAgo(new Date(job.job_posted_at_datetime_utc)) : 
+                  '3 days ago',
+                expiresIn: '30 days',
+                isEligible: true,
+                isBookmarked: false,
+                enrolledCount: Math.floor(Math.random() * 80) + 20,
+                jobDescription: job.job_description,
+                employmentType: job.job_employment_type,
+                responsibilities: job.job_highlights?.Responsibilities || [],
+                benefits: job.job_highlights?.Benefits || []
+              };
+            });
+
+          if (transformedRecommendedJobs.length === 0) {
+            throw new Error('No recommended jobs found');
+          }
+
+          // Apply any existing bookmarks
+          const bookmarks = JSON.parse(localStorage.getItem('bookmarkedJobs') || '[]');
+          const recommendationsWithBookmarks = transformedRecommendedJobs.map(job => ({
+            ...job,
+            isBookmarked: bookmarks.includes(job.id)
+          }));
+
+          setRecommendedJobs(recommendationsWithBookmarks);
+        } catch (error) {
+          console.error('Error loading recommended jobs:', error);
+          setError('Failed to load recommended jobs. Please try again later.');
+        }
+      }
+    };
+
+    loadRecommendedJobs();
   }, [activeTab, recommendedJobs.length]);
 
-  // Also generate recommended jobs on initial load
+  // Also load recommended jobs on initial load
   useEffect(() => {
-    generateRecommendedJobs();
+    const loadInitialRecommendedJobs = async () => {
+      try {
+        const recommendedQueries = [
+          'frontend developer india',
+          'backend developer india',
+          'full stack developer india',
+          'mobile developer india',
+          'devops engineer india',
+          'software engineer india'
+        ];
+        
+        const options = {
+          method: 'GET',
+          headers: {
+            'X-RapidAPI-Key': RAPID_API_KEY,
+            'X-RapidAPI-Host': RAPID_API_HOST
+          }
+        };
+
+        // Fetch one job for each query
+        const recommendedJobsPromises = recommendedQueries.map(async query => {
+          try {
+            const response = await fetch(
+              `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(query)}&page=1&num_pages=1&country=IN`,
+              options
+            );
+
+            if (!response.ok) {
+              throw new Error('Failed to fetch recommended jobs');
+            }
+
+            const data = await response.json();
+            return data.data[0]; // Get first job from each query
+          } catch (error) {
+            console.error(`Error fetching recommended job for ${query}:`, error);
+            return null;
+          }
+        });
+
+        const recommendedJobsData = await Promise.all(recommendedJobsPromises);
+        
+        // Transform and filter out null results
+        const transformedRecommendedJobs: Job[] = recommendedJobsData
+          .filter(job => job !== null)
+          .map((job: JobApiResponse) => {
+            // Calculate salary in LPA (Lakhs Per Annum)
+            const minSalaryLPA = job.job_min_salary ? Math.floor(job.job_min_salary / 100000) : 3;
+            const maxSalaryLPA = job.job_max_salary ? Math.floor(job.job_max_salary / 100000) : 15;
+            
+            // Extract skills from job description and required skills
+            const skillsFromDesc = job.job_required_skills
+              ? job.job_required_skills.split(',').map(skill => skill.trim())
+              : [];
+            
+            // Get qualifications from job highlights
+            const qualifications = job.job_highlights?.Qualifications || [];
+            
+            // Combine skills and filter duplicates
+            const skills = Array.from(new Set([...skillsFromDesc, ...qualifications]))
+              .slice(0, 5); // Limit to 5 skills
+
+            return {
+              id: job.job_id || String(Math.random()),
+              title: job.job_title || 'Software Developer',
+              company: job.employer_name || 'Unknown Company',
+              companyLogo: job.employer_logo || getCompanyLogo(job.employer_name || 'Unknown Company'),
+              location: job.job_city ? `${job.job_city}, ${job.job_country}` : job.job_country || 'Remote',
+              lpa: `${minSalaryLPA}-${maxSalaryLPA} LPA`,
+              skills: skills.length > 0 ? skills : ['JavaScript', 'React', 'Node.js'],
+              postedTime: job.job_posted_at_datetime_utc ? 
+                formatTimeAgo(new Date(job.job_posted_at_datetime_utc)) : 
+                '3 days ago',
+              expiresIn: '30 days',
+              isEligible: true,
+              isBookmarked: false,
+              enrolledCount: Math.floor(Math.random() * 80) + 20,
+              jobDescription: job.job_description,
+              employmentType: job.job_employment_type,
+              responsibilities: job.job_highlights?.Responsibilities || [],
+              benefits: job.job_highlights?.Benefits || []
+            };
+          });
+
+        if (transformedRecommendedJobs.length === 0) {
+          throw new Error('No recommended jobs found');
+        }
+
+        // Apply any existing bookmarks
+        const bookmarks = JSON.parse(localStorage.getItem('bookmarkedJobs') || '[]');
+        const recommendationsWithBookmarks = transformedRecommendedJobs.map(job => ({
+          ...job,
+          isBookmarked: bookmarks.includes(job.id)
+        }));
+
+        setRecommendedJobs(recommendationsWithBookmarks);
+      } catch (error) {
+        console.error('Error loading initial recommended jobs:', error);
+        setError('Failed to load recommended jobs. Please try again later.');
+      }
+    };
+
+    loadInitialRecommendedJobs();
   }, []);
 
   // Handle refresh button click
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
     
-    // Refresh recommended jobs
-    generateRecommendedJobs();
-    
-    // Refresh regular jobs
-    fetchJobs(1);
-    
-    // Show spinning animation for 1 second
-    setTimeout(() => {
-      setIsRefreshing(false);
+    try {
+      // Refresh regular jobs with current search term
+      await fetchJobs(1, searchTerm);
+      
+      // Refresh recommended jobs
+      const recommendedQueries = [
+        'frontend developer india',
+        'backend developer india',
+        'full stack developer india',
+        'mobile developer india',
+        'devops engineer india',
+        'software engineer india'
+      ];
+      
+      const options = {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': RAPID_API_KEY,
+          'X-RapidAPI-Host': RAPID_API_HOST
+        }
+      };
+
+      // Fetch one job for each query
+      const recommendedJobsPromises = recommendedQueries.map(async query => {
+        try {
+          const response = await fetch(
+            `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(query)}&page=1&num_pages=1&country=IN`,
+            options
+          );
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch recommended jobs');
+          }
+
+          const data = await response.json();
+          return data.data[0]; // Get first job from each query
+        } catch (error) {
+          console.error(`Error fetching recommended job for ${query}:`, error);
+          return null;
+        }
+      });
+
+      const recommendedJobsData = await Promise.all(recommendedJobsPromises);
+      
+      // Transform and filter out null results
+      const transformedRecommendedJobs: Job[] = recommendedJobsData
+        .filter(job => job !== null)
+        .map((job: JobApiResponse) => {
+          // Calculate salary in LPA (Lakhs Per Annum)
+          const minSalaryLPA = job.job_min_salary ? Math.floor(job.job_min_salary / 100000) : 3;
+          const maxSalaryLPA = job.job_max_salary ? Math.floor(job.job_max_salary / 100000) : 15;
+          
+          // Extract skills from job description and required skills
+          const skillsFromDesc = job.job_required_skills
+            ? job.job_required_skills.split(',').map(skill => skill.trim())
+            : [];
+          
+          // Get qualifications from job highlights
+          const qualifications = job.job_highlights?.Qualifications || [];
+          
+          // Combine skills and filter duplicates
+          const skills = Array.from(new Set([...skillsFromDesc, ...qualifications]))
+            .slice(0, 5); // Limit to 5 skills
+
+          return {
+            id: job.job_id || String(Math.random()),
+            title: job.job_title || 'Software Developer',
+            company: job.employer_name || 'Unknown Company',
+            companyLogo: job.employer_logo || getCompanyLogo(job.employer_name || 'Unknown Company'),
+            location: job.job_city ? `${job.job_city}, ${job.job_country}` : job.job_country || 'Remote',
+            lpa: `${minSalaryLPA}-${maxSalaryLPA} LPA`,
+            skills: skills.length > 0 ? skills : ['JavaScript', 'React', 'Node.js'],
+            postedTime: job.job_posted_at_datetime_utc ? 
+              formatTimeAgo(new Date(job.job_posted_at_datetime_utc)) : 
+              '3 days ago',
+            expiresIn: '30 days',
+            isEligible: true,
+            isBookmarked: false,
+            enrolledCount: Math.floor(Math.random() * 80) + 20,
+            jobDescription: job.job_description,
+            employmentType: job.job_employment_type,
+            responsibilities: job.job_highlights?.Responsibilities || [],
+            benefits: job.job_highlights?.Benefits || []
+          };
+        });
+
+      if (transformedRecommendedJobs.length === 0) {
+        throw new Error('No recommended jobs found');
+      }
+
+      // Apply any existing bookmarks
+      const bookmarks = JSON.parse(localStorage.getItem('bookmarkedJobs') || '[]');
+      const recommendationsWithBookmarks = transformedRecommendedJobs.map(job => ({
+        ...job,
+        isBookmarked: bookmarks.includes(job.id)
+      }));
+
+      setRecommendedJobs(recommendationsWithBookmarks);
       
       // Show success message
       setShowRefreshMessage(true);
@@ -703,7 +927,15 @@ const JobDashboard: React.FC = () => {
       setTimeout(() => {
         setShowRefreshMessage(false);
       }, 3000);
-    }, 1000);
+    } catch (error) {
+      console.error('Error refreshing jobs:', error);
+      setError('Failed to refresh jobs. Please try again later.');
+    } finally {
+      // Stop spinning animation after 1 second minimum
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 1000);
+    }
   };
 
   const removeJob = (jobId: string) => {
@@ -1417,6 +1649,14 @@ const JobDashboard: React.FC = () => {
                   </svg>
                   {selectedJob.location}
                 </div>
+                {selectedJob.employmentType && (
+                  <div className={styles.modalEmploymentType}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    {selectedJob.employmentType}
+                  </div>
+                )}
               </div>
               <div className={styles.modalSalary}>
                 <div className={styles.modalLpa}>{selectedJob.lpa}</div>
@@ -1442,47 +1682,53 @@ const JobDashboard: React.FC = () => {
               <div className={styles.modalSection}>
                 <h3 className={styles.modalSectionTitle}>Job Description</h3>
                 <p className={styles.modalDescription}>
-                  We are looking for a talented {selectedJob.title} to join our team at {selectedJob.company}. 
-                  This is an exciting opportunity to work on cutting-edge projects in a collaborative environment.
-                </p>
-                <p className={styles.modalDescription}>
-                  The ideal candidate will have strong experience with {selectedJob.skills.join(', ')}, 
-                  and a passion for building high-quality, scalable applications.
+                  {selectedJob.jobDescription || `We are looking for a talented ${selectedJob.title} to join our team at ${selectedJob.company}. 
+                  This is an exciting opportunity to work on cutting-edge projects in a collaborative environment.`}
                 </p>
               </div>
               
-              <div className={styles.modalSection}>
-                <h3 className={styles.modalSectionTitle}>Responsibilities</h3>
-                <ul className={styles.modalList}>
-                  <li>Design and implement new features and functionality</li>
-                  <li>Write clean, maintainable, and efficient code</li>
-                  <li>Collaborate with cross-functional teams</li>
-                  <li>Participate in code reviews and contribute to technical discussions</li>
-                  <li>Troubleshoot and debug applications</li>
-                </ul>
-              </div>
+              {selectedJob.responsibilities && selectedJob.responsibilities.length > 0 && (
+                <div className={styles.modalSection}>
+                  <h3 className={styles.modalSectionTitle}>Responsibilities</h3>
+                  <ul className={styles.modalList}>
+                    {selectedJob.responsibilities.map((responsibility, index) => (
+                      <li key={index}>{responsibility}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               
               <div className={styles.modalSection}>
                 <h3 className={styles.modalSectionTitle}>Qualifications</h3>
                 <ul className={styles.modalList}>
-                  <li>Bachelor's degree in Computer Science or related field</li>
-                  <li>2+ years of experience in software development</li>
-                  <li>Strong proficiency in {selectedJob.skills[0]} and {selectedJob.skills[1]}</li>
+                  <li>Strong proficiency in {selectedJob.skills.slice(0, 3).join(', ')}</li>
+                  <li>Experience with {selectedJob.skills.slice(3).join(', ')}</li>
                   <li>Excellent problem-solving and communication skills</li>
                   <li>Experience with agile development methodologies</li>
                 </ul>
               </div>
               
-              <div className={styles.modalSection}>
-                <h3 className={styles.modalSectionTitle}>Benefits</h3>
-                <ul className={styles.modalList}>
-                  <li>Competitive salary: {selectedJob.lpa}</li>
-                  <li>Flexible work hours and remote work options</li>
-                  <li>Health insurance and wellness programs</li>
-                  <li>Professional development opportunities</li>
-                  <li>Modern office with great amenities</li>
-                </ul>
-              </div>
+              {selectedJob.benefits && selectedJob.benefits.length > 0 ? (
+                <div className={styles.modalSection}>
+                  <h3 className={styles.modalSectionTitle}>Benefits</h3>
+                  <ul className={styles.modalList}>
+                    {selectedJob.benefits.map((benefit, index) => (
+                      <li key={index}>{benefit}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className={styles.modalSection}>
+                  <h3 className={styles.modalSectionTitle}>Benefits</h3>
+                  <ul className={styles.modalList}>
+                    <li>Competitive salary: {selectedJob.lpa}</li>
+                    <li>Flexible work hours and remote work options</li>
+                    <li>Health insurance and wellness programs</li>
+                    <li>Professional development opportunities</li>
+                    <li>Modern office with great amenities</li>
+                  </ul>
+                </div>
+              )}
             </div>
             
             <div className={styles.modalFooter}>
